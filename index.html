@@ -52,15 +52,21 @@
         .pix-color { color: #06b6d4; }
 
         .btn-config {
-            background: none;
-            border: none;
-            font-size: 24px;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            font-size: 16px;
             cursor: pointer;
-            color: #1e3a8a;
-            padding: 5px;
+            color: #64748b;
+            padding: 6px 10px;
+            border-radius: 8px;
             width: auto;
             margin: 0;
             line-height: 1;
+            transition: all 0.2s;
+        }
+        .btn-config:hover {
+            background: #e2e8f0;
+            color: #1e3a8a;
         }
 
         label { font-size: 14px; font-weight: 700; color: #1e3a8a; display: block; margin-top: 14px; }
@@ -301,7 +307,7 @@ function carregarDados() {
         } catch (err) {}
     }
 
-    // Se não houver dados cadastrados no primeiro uso, exibe a caixa e mostra olho aberto
+    // Se não houver dados cadastrados no primeiro uso, exibe a caixa e mostra o olho aberto
     if (!chave || !nome || !cidade) {
         document.getElementById('config-box').style.display = 'block';
         document.getElementById('btn-toggle-config').innerText = '👁️';
@@ -364,7 +370,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     await iniciarBanco();
     carregarDados();
 
-    // SOLICITAÇÃO EXPLICITA DE ARMAZENAMENTO PERSISTENTE (NÃO VOLÁTIL)
     if (navigator.storage && navigator.storage.persist) {
         navigator.storage.persist().then((persistent) => {
             if (persistent) {
@@ -465,7 +470,7 @@ function gerarPix() {
     let cidade = limparTexto(cidadeOriginal).substring(0, 15);
 
     if (!chave || !nome || !cidade) {
-        alert('Por favor, configure seus dados de recebedor no ícone do olho no topo.');
+        alert('Por favor, configure seus dados de recebedor.');
         document.getElementById('config-box').style.display = 'block';
         document.getElementById('btn-toggle-config').innerText = '👁️';
         return;
@@ -555,7 +560,6 @@ function enviarWhatsApp() {
     window.open(url, '_blank');
 }
 
-// Suporte PWA e Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
         navigator.serviceWorker.register('./sw.js').catch(function(err) {});
