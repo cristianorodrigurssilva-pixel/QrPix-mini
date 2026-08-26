@@ -54,12 +54,13 @@
         .btn-config {
             background: none;
             border: none;
-            font-size: 22px;
+            font-size: 24px;
             cursor: pointer;
             color: #1e3a8a;
             padding: 5px;
             width: auto;
             margin: 0;
+            line-height: 1;
         }
 
         label { font-size: 14px; font-weight: 700; color: #1e3a8a; display: block; margin-top: 14px; }
@@ -172,10 +173,10 @@
 <div class="container">
     <div class="header">
         <h1>Qr<span class="pix-color">Pix</span></h1>
-        <button type="button" class="btn-config" onclick="toggleConfig()" title="Configurar Chave">⚙️</button>
+        <button type="button" id="btn-toggle-config" class="btn-config" onclick="toggleConfig()" title="Mostrar/Ocultar Dados">👁️‍🗨️</button>
     </div>
 
-    <!-- Painel de Configurações dos Dados do Recebedor (Oculto por padrão se já preenchido) -->
+    <!-- Painel de Configurações dos Dados do Recebedor (Oculto por padrão) -->
     <div id="config-box" class="config-box">
         <label for="tipoChave">Tipo de Chave Pix:</label>
         <select id="tipoChave" onchange="alterarTipoChave()">
@@ -220,9 +221,9 @@
 <div id="toast" class="toast">✓ Código Pix copiado!</div>
 
 <script>
-// --- BANCO DE DADOS PERSISTENTE ---
+// --- BANCO DE DADOS PERSISTENTE E PERMANENTE ---
 let db;
-const dbName = "QrPixDatabase_LITE";
+const dbName = "QrPixDatabase_PERMANENTE";
 
 function iniciarBanco() {
     return new Promise((resolve) => {
@@ -244,7 +245,7 @@ function iniciarBanco() {
 }
 
 function salvarDado(campo, valor) {
-    localStorage.setItem('pix_lite_' + campo, valor);
+    localStorage.setItem('pix_perm_' + campo, valor);
 
     if (db) {
         try {
@@ -256,10 +257,10 @@ function salvarDado(campo, valor) {
 }
 
 function carregarDados() {
-    let tipo = localStorage.getItem('pix_lite_tipoChave');
-    let chave = localStorage.getItem('pix_lite_chave');
-    let nome = localStorage.getItem('pix_lite_nome');
-    let cidade = localStorage.getItem('pix_lite_cidade');
+    let tipo = localStorage.getItem('pix_perm_tipoChave');
+    let chave = localStorage.getItem('pix_perm_chave');
+    let nome = localStorage.getItem('pix_perm_nome');
+    let cidade = localStorage.getItem('pix_perm_cidade');
 
     if (tipo) document.getElementById('tipoChave').value = tipo;
     alterarTipoChave();
@@ -268,15 +269,56 @@ function carregarDados() {
     if (nome) document.getElementById('nome').value = nome;
     if (cidade) document.getElementById('cidade').value = cidade;
 
-    // Se não houver dados cadastrados, exibe automaticamente a caixa de configurações
+    if (db && (!chave || !nome || !cidade)) {
+        try {
+            const tx = db.transaction("dados", "readonly");
+            const store = tx.objectStore("dados");
+            
+            store.get("tipoChave").onsuccess = (e) => {
+                if (e.target.result && !document.getElementById('tipoChave').value) {
+                    document.getElementById('tipoChave').value = e.target.result.valor;
+                    alterarTipoChave();
+                }
+            };
+            store.get("chave").onsuccess = (e) => {
+                if (e.target.result && !document.getElementById('chave').value) {
+                    document.getElementById('chave').value = e.target.result.valor;
+                    localStorage.setItem('pix_perm_chave', e.target.result.valor);
+                }
+            };
+            store.get("nome").onsuccess = (e) => {
+                if (e.target.result && !document.getElementById('nome').value) {
+                    document.getElementById('nome').value = e.target.result.valor;
+                    localStorage.setItem('pix_perm_nome', e.target.result.valor);
+                }
+            };
+            store.get("cidade").onsuccess = (e) => {
+                if (e.target.result && !document.getElementById('cidade').value) {
+                    document.getElementById('cidade').value = e.target.result.valor;
+                    localStorage.setItem('pix_perm_cidade', e.target.result.valor);
+                }
+            };
+        } catch (err) {}
+    }
+
+    // Se não houver dados cadastrados no primeiro uso, exibe a caixa e mostra olho aberto
     if (!chave || !nome || !cidade) {
         document.getElementById('config-box').style.display = 'block';
+        document.getElementById('btn-toggle-config').innerText = '👁️';
     }
 }
 
 function toggleConfig() {
     const box = document.getElementById('config-box');
-    box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+    const btn = document.getElementById('btn-toggle-config');
+    
+    if (box.style.display === 'block') {
+        box.style.display = 'none';
+        btn.innerText = '👁️‍🗨️';
+    } else {
+        box.style.display = 'block';
+        btn.innerText = '👁️';
+    }
 }
 
 function salvarEFecharConfig() {
@@ -290,6 +332,7 @@ function salvarEFecharConfig() {
     }
 
     document.getElementById('config-box').style.display = 'none';
+    document.getElementById('btn-toggle-config').innerText = '👁️‍🗨️';
 }
 
 function alterarTipoChave() {
@@ -321,8 +364,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     await iniciarBanco();
     carregarDados();
 
+    // SOLICITAÇÃO EXPLICITA DE ARMAZENAMENTO PERSISTENTE (NÃO VOLÁTIL)
     if (navigator.storage && navigator.storage.persist) {
-        navigator.storage.persist();
+        navigator.storage.persist().then((persistent) => {
+            if (persistent) {
+                console.log("Armazenamento permanente concedido pelo navegador.");
+            }
+        });
     }
 
     document.getElementById('chave').addEventListener('input', (e) => salvarDado('chave', e.target.value));
@@ -330,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('cidade').addEventListener('input', (e) => salvarDado('cidade', e.target.value));
 });
 
-// Máscara de valor dinâmico
+// Máscara de valor
 document.getElementById('valor').addEventListener('input', function(e) {
     let value = e.target.value.replace(/\D/g, '');
     
@@ -417,8 +465,9 @@ function gerarPix() {
     let cidade = limparTexto(cidadeOriginal).substring(0, 15);
 
     if (!chave || !nome || !cidade) {
-        alert('Por favor, configure seus dados de recebedor no ícone de engrenagem ⚙️ no topo.');
+        alert('Por favor, configure seus dados de recebedor no ícone do olho no topo.');
         document.getElementById('config-box').style.display = 'block';
+        document.getElementById('btn-toggle-config').innerText = '👁️';
         return;
     }
 
