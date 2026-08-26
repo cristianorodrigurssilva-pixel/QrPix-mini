@@ -37,7 +37,9 @@
         }
         
         .header {
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
         }
 
@@ -49,60 +51,15 @@
         }
         .pix-color { color: #06b6d4; }
 
-        /* Cartão Discreto do Recebedor */
-        .card-recebedor {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .recebedor-info {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            overflow: hidden;
-            padding-right: 10px;
-        }
-
-        .recebedor-nome {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1e3a8a;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .recebedor-chave {
-            font-size: 12px;
-            color: #64748b;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .btn-alterar {
+        .btn-config {
             background: none;
             border: none;
-            color: #2563eb;
-            font-size: 13px;
-            font-weight: 700;
+            font-size: 22px;
             cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 6px;
-            transition: background 0.2s;
+            color: #1e3a8a;
+            padding: 5px;
             width: auto;
             margin: 0;
-            line-height: normal;
-        }
-        .btn-alterar:hover {
-            background: #eff6ff;
-            color: #1d4ed8;
         }
 
         label { font-size: 14px; font-weight: 700; color: #1e3a8a; display: block; margin-top: 14px; }
@@ -133,7 +90,7 @@
             box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18);
         }
 
-        button.btn-principal { 
+        button { 
             width: 100%; 
             padding: 14px; 
             background-color: #2563eb; 
@@ -146,11 +103,11 @@
             cursor: pointer; 
             transition: background 0.2s, transform 0.1s;
         }
-        button.btn-principal:hover { background-color: #1d4ed8; }
-        button.btn-principal:active { transform: scale(0.99); }
+        button:hover { background-color: #1d4ed8; }
+        button:active { transform: scale(0.99); }
         
-        .btn-whatsapp { background-color: #25d366 !important; color: white; margin-top: 10px; }
-        .btn-whatsapp:hover { background-color: #1eb954 !important; }
+        .btn-whatsapp { background-color: #25d366; color: white; margin-top: 10px; }
+        .btn-whatsapp:hover { background-color: #1eb954; }
         
         #btn-instalar { background-color: #0f172a; color: white; display: none; margin-top: 15px; }
         
@@ -215,20 +172,12 @@
 <div class="container">
     <div class="header">
         <h1>Qr<span class="pix-color">Pix</span></h1>
+        <button type="button" class="btn-config" onclick="toggleConfig()" title="Configurar Chave">⚙️</button>
     </div>
 
-    <!-- Resumo Sutil do Recebedor -->
-    <div class="card-recebedor">
-        <div class="recebedor-info">
-            <span class="recebedor-nome" id="resumo-nome">Sem recebedor cadastrado</span>
-            <span class="recebedor-chave" id="resumo-chave">Clique para configurar seus dados</span>
-        </div>
-        <button type="button" class="btn-alterar" onclick="toggleConfig()" id="btn-alterar-texto">Alterar</button>
-    </div>
-
-    <!-- Painel de Configurações dos Dados do Recebedor (Oculto por padrão) -->
+    <!-- Painel de Configurações dos Dados do Recebedor (Oculto por padrão se já preenchido) -->
     <div id="config-box" class="config-box">
-        <label for="tipoChave" style="margin-top: 0;">Tipo de Chave Pix:</label>
+        <label for="tipoChave">Tipo de Chave Pix:</label>
         <select id="tipoChave" onchange="alterarTipoChave()">
             <option value="CELULAR">Celular</option>
             <option value="CPF">CPF</option>
@@ -246,14 +195,14 @@
         <label for="cidade">Cidade:</label>
         <input type="text" id="cidade" placeholder="Sua Cidade">
 
-        <button type="button" class="btn-principal" onclick="salvarEFecharConfig()" style="background-color: #0f172a; margin-top: 14px;">Salvar Dados</button>
+        <button type="button" onclick="salvarEFecharConfig()" style="background-color: #0f172a;">Salvar e Ocultar Dados</button>
     </div>
 
     <!-- Tela Principal Simplificada -->
     <label for="valor">Digite o Valor (R$):</label>
     <input type="text" id="valor" class="input-valor" placeholder="0,00" inputmode="numeric" autofocus>
 
-    <button type="button" class="btn-principal" onclick="gerarPix()">Gerar PIX</button>
+    <button type="button" onclick="gerarPix()">Gerar PIX</button>
 
     <div id="result" class="result-box">
         <div id="qrcode-container"></div>
@@ -261,19 +210,19 @@
         <label for="pix-payload">Código Pix Copia e Cola:</label>
         <textarea id="pix-payload" readonly></textarea>
         
-        <button type="button" id="btn-copiar" class="btn-principal" onclick="copiarPix()">Copiar Código Pix</button>
-        <button type="button" class="btn-principal btn-whatsapp" onclick="enviarWhatsApp()">Enviar por WhatsApp</button>
+        <button type="button" id="btn-copiar" onclick="copiarPix()">Copiar Código Pix</button>
+        <button type="button" class="btn-whatsapp" onclick="enviarWhatsApp()">Enviar por WhatsApp</button>
     </div>
 
-    <button type="button" id="btn-instalar" class="btn-principal">Instalar App no Celular</button>
+    <button type="button" id="btn-instalar">Instalar App no Celular</button>
 </div>
 
 <div id="toast" class="toast">✓ Código Pix copiado!</div>
 
 <script>
-// --- BANCO DE DADOS PERSISTENTE E PERMANENTE ---
+// --- BANCO DE DADOS PERSISTENTE ---
 let db;
-const dbName = "QrPixDatabase_PERMANENTE";
+const dbName = "QrPixDatabase_LITE";
 
 function iniciarBanco() {
     return new Promise((resolve) => {
@@ -295,7 +244,7 @@ function iniciarBanco() {
 }
 
 function salvarDado(campo, valor) {
-    localStorage.setItem('pix_perm_' + campo, valor);
+    localStorage.setItem('pix_lite_' + campo, valor);
 
     if (db) {
         try {
@@ -304,31 +253,13 @@ function salvarDado(campo, valor) {
             store.put({ campo: campo, valor: valor });
         } catch (err) {}
     }
-    atualizarResumoCard();
-}
-
-function atualizarResumoCard() {
-    let nome = localStorage.getItem('pix_perm_nome');
-    let chave = localStorage.getItem('pix_perm_chave');
-    let tipo = localStorage.getItem('pix_perm_tipoChave') || 'Chave';
-
-    const lblNome = document.getElementById('resumo-nome');
-    const lblChave = document.getElementById('resumo-chave');
-
-    if (nome && chave) {
-        lblNome.innerText = nome;
-        lblChave.innerText = `${tipo}: ${chave}`;
-    } else {
-        lblNome.innerText = 'Sem recebedor cadastrado';
-        lblChave.innerText = 'Clique para configurar seus dados';
-    }
 }
 
 function carregarDados() {
-    let tipo = localStorage.getItem('pix_perm_tipoChave');
-    let chave = localStorage.getItem('pix_perm_chave');
-    let nome = localStorage.getItem('pix_perm_nome');
-    let cidade = localStorage.getItem('pix_perm_cidade');
+    let tipo = localStorage.getItem('pix_lite_tipoChave');
+    let chave = localStorage.getItem('pix_lite_chave');
+    let nome = localStorage.getItem('pix_lite_nome');
+    let cidade = localStorage.getItem('pix_lite_cidade');
 
     if (tipo) document.getElementById('tipoChave').value = tipo;
     alterarTipoChave();
@@ -337,60 +268,15 @@ function carregarDados() {
     if (nome) document.getElementById('nome').value = nome;
     if (cidade) document.getElementById('cidade').value = cidade;
 
-    if (db && (!chave || !nome || !cidade)) {
-        try {
-            const tx = db.transaction("dados", "readonly");
-            const store = tx.objectStore("dados");
-            
-            store.get("tipoChave").onsuccess = (e) => {
-                if (e.target.result && !document.getElementById('tipoChave').value) {
-                    document.getElementById('tipoChave').value = e.target.result.valor;
-                    alterarTipoChave();
-                }
-            };
-            store.get("chave").onsuccess = (e) => {
-                if (e.target.result && !document.getElementById('chave').value) {
-                    document.getElementById('chave').value = e.target.result.valor;
-                    localStorage.setItem('pix_perm_chave', e.target.result.valor);
-                    atualizarResumoCard();
-                }
-            };
-            store.get("nome").onsuccess = (e) => {
-                if (e.target.result && !document.getElementById('nome').value) {
-                    document.getElementById('nome').value = e.target.result.valor;
-                    localStorage.setItem('pix_perm_nome', e.target.result.valor);
-                    atualizarResumoCard();
-                }
-            };
-            store.get("cidade").onsuccess = (e) => {
-                if (e.target.result && !document.getElementById('cidade').value) {
-                    document.getElementById('cidade').value = e.target.result.valor;
-                    localStorage.setItem('pix_perm_cidade', e.target.result.valor);
-                }
-            };
-        } catch (err) {}
-    }
-
-    atualizarResumoCard();
-
-    // Se não houver dados no primeiro uso, abre a configuração automaticamente
+    // Se não houver dados cadastrados, exibe automaticamente a caixa de configurações
     if (!chave || !nome || !cidade) {
         document.getElementById('config-box').style.display = 'block';
-        document.getElementById('btn-alterar-texto').innerText = 'Cancelar';
     }
 }
 
 function toggleConfig() {
     const box = document.getElementById('config-box');
-    const btnText = document.getElementById('btn-alterar-texto');
-    
-    if (box.style.display === 'block') {
-        box.style.display = 'none';
-        btnText.innerText = 'Alterar';
-    } else {
-        box.style.display = 'block';
-        btnText.innerText = 'Cancelar';
-    }
+    box.style.display = (box.style.display === 'block') ? 'none' : 'block';
 }
 
 function salvarEFecharConfig() {
@@ -403,13 +289,7 @@ function salvarEFecharConfig() {
         return;
     }
 
-    salvarDado('chave', chave);
-    salvarDado('nome', nome);
-    salvarDado('cidade', cidade);
-
     document.getElementById('config-box').style.display = 'none';
-    document.getElementById('btn-alterar-texto').innerText = 'Alterar';
-    atualizarResumoCard();
 }
 
 function alterarTipoChave() {
@@ -442,11 +322,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     carregarDados();
 
     if (navigator.storage && navigator.storage.persist) {
-        navigator.storage.persist().then((persistent) => {
-            if (persistent) {
-                console.log("Armazenamento permanente concedido pelo navegador.");
-            }
-        });
+        navigator.storage.persist();
     }
 
     document.getElementById('chave').addEventListener('input', (e) => salvarDado('chave', e.target.value));
@@ -454,7 +330,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('cidade').addEventListener('input', (e) => salvarDado('cidade', e.target.value));
 });
 
-// Máscara de valor
+// Máscara de valor dinâmico
 document.getElementById('valor').addEventListener('input', function(e) {
     let value = e.target.value.replace(/\D/g, '');
     
@@ -541,9 +417,8 @@ function gerarPix() {
     let cidade = limparTexto(cidadeOriginal).substring(0, 15);
 
     if (!chave || !nome || !cidade) {
-        alert('Por favor, configure seus dados de recebedor.');
+        alert('Por favor, configure seus dados de recebedor no ícone de engrenagem ⚙️ no topo.');
         document.getElementById('config-box').style.display = 'block';
-        document.getElementById('btn-alterar-texto').innerText = 'Cancelar';
         return;
     }
 
@@ -631,6 +506,7 @@ function enviarWhatsApp() {
     window.open(url, '_blank');
 }
 
+// Suporte PWA e Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
         navigator.serviceWorker.register('./sw.js').catch(function(err) {});
