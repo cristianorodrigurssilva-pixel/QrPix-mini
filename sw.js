@@ -1,159 +1,39 @@
-const CACHE_NAME = "qrpix-v3";
-
-const ASSETS_TO_CACHE = [
-    "./",
-    "./index.html",
-    "./manifest.json",
-    "./icon.svg",
-    "./icon-512.png"
+const CACHE_NAME = 'qrpix-v2';
+const ASSETS = [
+    './',
+    './index.html',
+    './manifest.json',
+    './icon-192.png',
+    './icon-512.png',
+    'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'
 ];
 
-/* =========================================================
-   INSTALAÇÃO
-   ========================================================= */
-
-self.addEventListener("install", function(event) {
-
+self.addEventListener('install', (event) => {
     event.waitUntil(
-
-        caches.open(CACHE_NAME)
-            .then(function(cache) {
-
-                return cache.addAll(
-                    ASSETS_TO_CACHE
-                );
-
-            })
-
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
     );
-
     self.skipWaiting();
 });
 
-
-/* =========================================================
-   ATIVAÇÃO
-   ========================================================= */
-
-self.addEventListener("activate", function(event) {
-
+self.addEventListener('activate', (event) => {
     event.waitUntil(
-
-        caches.keys()
-            .then(function(cacheNames) {
-
-                return Promise.all(
-
-                    cacheNames.map(function(cacheName) {
-
-                        if (
-                            cacheName !== CACHE_NAME
-                        ) {
-
-                            return caches.delete(
-                                cacheName
-                            );
-
-                        }
-
-                    })
-
-                );
-
-            })
-
-            .then(function() {
-
-                return self.clients.claim();
-
-            })
-
+        caches.keys().then((keys) => {
+            return Promise.all(
+                keys.map((key) => {
+                    if (key !== CACHE_NAME) {
+                        return caches.delete(key);
+                    }
+                })
+            );
+        })
     );
-
+    self.clients.claim();
 });
 
-
-/* =========================================================
-   REQUISIÇÕES
-   ========================================================= */
-
-self.addEventListener("fetch", function(event) {
-
-    /*
-       Apenas requisições GET podem
-       ser armazenadas no cache.
-    */
-
-    if (event.request.method !== "GET") {
-        return;
-    }
-
-
+self.addEventListener('fetch', (event) => {
     event.respondWith(
-
-        caches.match(event.request)
-            .then(function(cachedResponse) {
-
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
-
-
-                return fetch(event.request)
-                    .then(function(networkResponse) {
-
-                        /*
-                           Salva no cache apenas
-                           respostas válidas.
-                        */
-
-                        if (
-                            networkResponse &&
-                            networkResponse.status === 200 &&
-                            networkResponse.type !== "opaque"
-                        ) {
-
-                            const responseClone =
-                                networkResponse.clone();
-
-                            caches.open(CACHE_NAME)
-                                .then(function(cache) {
-
-                                    cache.put(
-                                        event.request,
-                                        responseClone
-                                    );
-
-                                });
-
-                        }
-
-                        return networkResponse;
-
-                    })
-                    .catch(function() {
-
-                        /*
-                           Se estiver offline e o arquivo
-                           não estiver no cache, deixa o
-                           navegador tratar o erro.
-                        */
-
-                        return new Response(
-                            "QrPix: conteúdo indisponível offline.",
-                            {
-                                status: 503,
-                                headers: {
-                                    "Content-Type":
-                                        "text/plain; charset=utf-8"
-                                }
-                            }
-                        );
-
-                    });
-
-            })
-
+        caches.match(event.request).then((response) => {
+            return response || fetch(event.request);
+        })
     );
-
 });
