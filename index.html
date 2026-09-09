@@ -11,7 +11,7 @@
     <link rel="icon" type="image/svg+xml" href="./icon.svg?v=2">
 
     <!-- Biblioteca QR Code -->
-    <script src="[https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js](https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js)"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
@@ -294,12 +294,10 @@ function iniciarBanco() {
 }
 
 function salvarDado(campo, valor) {
-    // 1. Salva no localStorage imediatamente
     try {
         localStorage.setItem('pix_perm_' + campo, valor);
     } catch (e) {}
 
-    // 2. Salva no IndexedDB como garantia adicional
     if (db) {
         try {
             const tx = db.transaction("dados", "readwrite");
@@ -311,7 +309,6 @@ function salvarDado(campo, valor) {
 }
 
 function carregarDados() {
-    // Tenta primeiro o localStorage
     let tipo = localStorage.getItem('pix_perm_tipoChave');
     let chave = localStorage.getItem('pix_perm_chave');
     let nome = localStorage.getItem('pix_perm_nome');
@@ -324,7 +321,6 @@ function carregarDados() {
     if (nome) document.getElementById('nome').value = nome;
     if (cidade) document.getElementById('cidade').value = cidade;
 
-    // Se faltar algo no localStorage, faz o backup através do IndexedDB
     if (db) {
         try {
             const tx = db.transaction("dados", "readonly");
@@ -443,7 +439,6 @@ function alterarTipoChave() {
     }
 }
 
-// SOLICITAR ARMAZENAMENTO PERSISTENTE AO NAVEGADOR
 async function solicitarPersistencia() {
     if (navigator.storage && navigator.storage.persist) {
         const isPersisted = await navigator.storage.persisted();
@@ -537,9 +532,9 @@ function tratarChavePixPorTipo(chaveBruta, tipo) {
 
 function gerarPix() {
     let tipo = document.getElementById('tipoChave').value;
-    let chaveBruta = document.getElementById('chave').value;
-    let nomeOriginal = document.getElementById('nome').value;
-    let cidadeOriginal = document.getElementById('cidade').value;
+    let chaveBruta = document.getElementById('chave').value || localStorage.getItem('pix_perm_chave') || '';
+    let nomeOriginal = document.getElementById('nome').value || localStorage.getItem('pix_perm_nome') || '';
+    let cidadeOriginal = document.getElementById('cidade').value || localStorage.getItem('pix_perm_cidade') || '';
     let valorInput = document.getElementById('valor').value;
 
     let chave = tratarChavePixPorTipo(chaveBruta, tipo);
@@ -547,7 +542,7 @@ function gerarPix() {
     let cidade = limparTexto(cidadeOriginal).substring(0, 15);
 
     if (!chave || !nome || !cidade) {
-        alert('Por favor, configure seus dados de recebedor.');
+        alert('Por favor, preencha os dados do recebedor (Chave, Nome e Cidade).');
         document.getElementById('config-box').style.display = 'block';
         document.getElementById('btn-alterar-texto').innerText = 'Cancelar';
         return;
@@ -580,17 +575,21 @@ function gerarPix() {
     const crc = CRC16(payload);
     const pixCompleto = payload + crc;
 
+    // EXIBE A DIV ANTES DE CRIAR O QR CODE
+    document.getElementById('result').style.display = 'block';
     document.getElementById('pix-payload').value = pixCompleto;
     document.getElementById('qrcode-container').innerHTML = '';
 
-    new QRCode(document.getElementById('qrcode-container'), { 
-        text: pixCompleto, 
-        width: 180, 
-        height: 180,
-        correctLevel: QRCode.CorrectLevel.M
-    });
-
-    document.getElementById('result').style.display = 'block';
+    try {
+        new QRCode(document.getElementById('qrcode-container'), { 
+            text: pixCompleto, 
+            width: 180, 
+            height: 180,
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    } catch (e) {
+        console.error("Erro ao gerar QR Code:", e);
+    }
 }
 
 function mostrarAviso() {
@@ -643,15 +642,15 @@ function enviarWhatsApp() {
     msg1 += `💵 *Valor:* R$ ${valor}\n\n`;
     msg1 += `👇 *Segue abaixo o código Pix Copia e Cola:*`;
 
-    // 2ª Mensagem: Apenas o código Pix isolado em bloco de código (ativa o botão "Copiar código" do WhatsApp)
+    // 2ª Mensagem: Apenas o código Pix isolado em bloco de código
     let msg2 = `\`\`\`${pixCode}\`\`\``;
 
     // Dispara a 1ª mensagem
-    window.open(`[https://api.whatsapp.com/send?text=$](https://api.whatsapp.com/send?text=$){encodeURIComponent(msg1)}`, '_blank');
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg1)}`, '_blank');
 
     // Prepara e dispara a 2ª mensagem (código Pix) após 1 segundo
     setTimeout(() => {
-        window.open(`[https://api.whatsapp.com/send?text=$](https://api.whatsapp.com/send?text=$){encodeURIComponent(msg2)}`, '_blank');
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg2)}`, '_blank');
     }, 1000);
 }
 
