@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QrPix Multi-Bancos</title>
+    <title>QrPix Mini</title>
     
     <!-- Configurações PWA -->
     <link rel="manifest" href="./manifest.json">
@@ -49,6 +49,7 @@
         }
         .pix-color { color: #06b6d4; }
 
+        /* Aba de Seleção de Instituição */
         .seletor-banco-box {
             background: #f8fafc;
             border: 1px solid #cbd5e1;
@@ -267,56 +268,53 @@
 
 <div class="container">
     <div class="header">
-        <h1>Qr<span class="pix-color">Pix</span></h1>
+        <h1>Qr<span class="pix-color">Pix Mini</span></h1>
     </div>
 
-    <!-- Aba de Seleção de Instituição -->
+    <!-- Aba de Seleção de Instituição / Chave -->
     <div class="seletor-banco-box">
         <div class="seletor-header">
             <span class="seletor-label">Instituição / Chave</span>
             <button type="button" class="btn-gerenciar" onclick="toggleConfig()" id="btn-gerenciar-texto">⚙️ Gerenciar</button>
         </div>
         <select id="seletorPerfil" class="select-perfil" onchange="selecionarPerfil()">
-            <!-- Perfis cadastrados serão inseridos aqui -->
+            <!-- Chaves cadastradas serão inseridas aqui -->
         </select>
     </div>
 
-    <!-- Painel para Cadastrar/Editar Instituições -->
+    <!-- Painel de Gerenciamento do QrPix Mini -->
     <div id="config-box" class="config-box">
-        <h4 style="color: #1e3a8a; margin-bottom: 10px;">Cadastrar Nova Instituição:</h4>
+        <h4 style="color: #1e3a8a; margin-bottom: 8px;">Dados do Recebedor (Fixo):</h4>
         
-        <label for="nomeBanco" style="margin-top:0;">Nome da Instituição/Banco:</label>
-        <input type="text" id="nomeBanco" placeholder="Ex: Nubank, Itaú, C6">
-
-        <label for="tipoChave">Tipo de Chave:</label>
-        <select id="tipoChave" onchange="alterarTipoChave()">
-            <option value="CELULAR">Celular</option>
-            <option value="CPF">CPF</option>
-            <option value="CNPJ">CNPJ</option>
-            <option value="EMAIL">E-mail</option>
-            <option value="EVP">Chave Aleatória (EVP)</option>
-        </select>
-
-        <label for="chave" id="labelChave">Chave Pix:</label>
-        <input type="text" id="chave" placeholder="(00) 00000-0000">
-
-        <label for="nome">Nome do Recebedor:</label>
+        <label for="nome" style="margin-top:0;">Nome Completo:</label>
         <input type="text" id="nome" placeholder="Seu Nome">
 
         <label for="cidade">Cidade:</label>
         <input type="text" id="cidade" placeholder="Sua Cidade">
+        
+        <button type="button" class="btn-principal" onclick="salvarDadosFixos()" style="background-color: #0f172a; margin-top: 10px; padding: 10px;">Salvar Dados Fixos</button>
+
+        <hr style="margin: 15px 0; border: 0; border-top: 1px solid #cbd5e1;">
+
+        <h4 style="color: #1e3a8a; margin-bottom: 8px;">Adicionar Chave Pix:</h4>
+
+        <label for="nomeBanco" style="margin-top:0;">Nome do Banco/Instituição:</label>
+        <input type="text" id="nomeBanco" placeholder="Ex: Nubank, Itaú">
+
+        <label for="chave">Chave Pix:</label>
+        <input type="text" id="chave" placeholder="CPF, Celular, E-mail ou EVP">
 
         <div class="checkbox-container">
             <input type="checkbox" id="chkPrincipal">
             <label for="chkPrincipal" class="checkbox-label">Tornar esta instituição principal</label>
         </div>
 
-        <button type="button" class="btn-principal" onclick="adicionarPerfil()" style="background-color: #0f172a; margin-top: 14px;">Adicionar Instituição</button>
+        <button type="button" class="btn-principal" onclick="adicionarChave()" style="background-color: #2563eb; margin-top: 14px;">Adicionar Chave</button>
 
         <div id="listaPerfisContainer" class="lista-perfis"></div>
     </div>
 
-    <!-- Tela Principal -->
+    <!-- Tela Principal do Mini (Apenas Valor e Ações) -->
     <label for="valor">Digite o Valor (R$):</label>
     <input type="text" id="valor" class="input-valor" placeholder="0,00" inputmode="numeric" autofocus>
 
@@ -336,66 +334,83 @@
 <div id="toast" class="toast">✓ Código Pix copiado!</div>
 
 <script>
-let perfis = [];
-let perfilAtualIndex = 0;
+// Estrutura Mini: Dados fixos + Lista de chaves
+let dadosFixos = { nome: "", cidade: "" };
+let chaves = [];
+let chaveAtualIndex = 0;
 
-function carregarPerfis() {
-    const salvos = localStorage.getItem('qrpix_perfis_multibanco');
-    if (salvos) {
-        try { perfis = JSON.parse(salvos); } catch (e) { perfis = []; }
+// Soliçitação de Armazenamento Permanente (Proteção contra limpeza do SO)
+if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist();
+}
+
+// Redundância Dupla: LocalStorage + IndexedDB
+function carregarTudo() {
+    const fixosSalvos = localStorage.getItem('qrpix_mini_fixos');
+    if (fixosSalvos) {
+        try { dadosFixos = JSON.parse(fixosSalvos); } catch(e){}
+    }
+    
+    const chavesSalvas = localStorage.getItem('qrpix_mini_chaves');
+    if (chavesSalvas) {
+        try { chaves = JSON.parse(chavesSalvas); } catch(e){}
     }
 
-    if (perfis.length === 0) {
-        perfis = [{
-            banco: "Minha Chave Principal",
-            tipo: "CELULAR",
-            chave: "",
-            nome: "",
-            cidade: "",
-            isPrincipal: true
-        }];
+    // Preenche os campos fixos
+    document.getElementById('nome').value = dadosFixos.nome || '';
+    document.getElementById('cidade').value = dadosFixos.cidade || '';
+
+    if (chaves.length === 0) {
         document.getElementById('config-box').style.display = 'block';
     }
 
-    const principalIdx = perfis.findIndex(p => p.isPrincipal);
-    perfilAtualIndex = principalIdx !== -1 ? principalIdx : 0;
+    const principalIdx = chaves.findIndex(c => c.isPrincipal);
+    chaveAtualIndex = principalIdx !== -1 ? principalIdx : 0;
 
-    atualizarSelectPerfis();
-    renderizarListaExclusao();
+    atualizarSelectChaves();
+    renderizarLista();
 }
 
-function salvarPerfis() {
-    localStorage.setItem('qrpix_perfis_multibanco', JSON.stringify(perfis));
-    atualizarSelectPerfis();
-    renderizarListaExclusao();
+function salvarTudo() {
+    localStorage.setItem('qrpix_mini_fixos', JSON.stringify(dadosFixos));
+    localStorage.setItem('qrpix_mini_chaves', JSON.stringify(chaves));
+    atualizarSelectChaves();
+    renderizarLista();
 }
 
-function atualizarSelectPerfis() {
+function salvarDadosFixos() {
+    dadosFixos.nome = document.getElementById('nome').value.trim();
+    dadosFixos.cidade = document.getElementById('cidade').value.trim();
+    salvarTudo();
+    mostrarAviso("✓ Dados fixos salvos!");
+}
+
+function atualizarSelectChaves() {
     const select = document.getElementById('seletorPerfil');
     select.innerHTML = '';
 
-    perfis.forEach((p, index) => {
+    chaves.forEach((c, index) => {
         const opt = document.createElement('option');
         opt.value = index;
-        const sufixo = p.isPrincipal ? ' ⭐' : '';
-        opt.innerText = `${p.banco} - ${p.tipo}${sufixo}`;
+        const sufixo = c.isPrincipal ? ' ⭐' : '';
+        opt.innerText = `${c.banco}${sufixo}`;
         select.appendChild(opt);
     });
 
-    select.value = perfilAtualIndex;
+    select.value = chaveAtualIndex;
 }
 
 function selecionarPerfil() {
     const select = document.getElementById('seletorPerfil');
-    perfilAtualIndex = parseInt(select.value, 10);
+    chaveAtualIndex = parseInt(select.value, 10);
 }
 
 function definirComoPrincipal(index) {
-    perfis.forEach((p, i) => {
-        p.isPrincipal = (i === index);
+    chaves.forEach((c, i) => {
+        c.isPrincipal = (i === index);
     });
-    perfilAtualIndex = index;
-    salvarPerfis();
+    chaveAtualIndex = index;
+    salvarTudo();
 }
 
 function toggleConfig() {
@@ -411,42 +426,27 @@ function toggleConfig() {
     }
 }
 
-function adicionarPerfil() {
+function adicionarChave() {
     let banco = document.getElementById('nomeBanco').value.trim();
-    let tipo = document.getElementById('tipoChave').value;
     let chave = document.getElementById('chave').value.trim();
-    let nome = document.getElementById('nome').value.trim();
-    let cidade = document.getElementById('cidade').value.trim();
     let querSerPrincipal = document.getElementById('chkPrincipal').checked;
 
-    if (!banco || !chave || !nome || !cidade) {
-        alert('Por favor, preencha todos os campos da instituição.');
+    if (!banco || !chave) {
+        alert('Preencha o Nome do Banco e a Chave Pix.');
         return;
     }
 
-    const eOPrimeiro = perfis.length === 1 && !perfis[0].chave;
-    if (eOPrimeiro) {
-        perfis = [];
-    }
+    salvarDadosFixos();
 
-    const isPrincipal = querSerPrincipal || eOPrimeiro || perfis.length === 0;
+    const isPrincipal = querSerPrincipal || chaves.length === 0;
 
     if (isPrincipal) {
-        perfis.forEach(p => p.isPrincipal = false);
+        chaves.forEach(c => c.isPrincipal = false);
     }
 
-    const novoPerfil = { 
-        banco, 
-        tipo, 
-        chave, 
-        nome, 
-        cidade, 
-        isPrincipal
-    };
-
-    perfis.push(novoPerfil);
-    perfilAtualIndex = perfis.length - 1;
-    salvarPerfis();
+    chaves.push({ banco, chave, isPrincipal });
+    chaveAtualIndex = chaves.length - 1;
+    salvarTudo();
 
     document.getElementById('nomeBanco').value = '';
     document.getElementById('chave').value = '';
@@ -456,72 +456,62 @@ function adicionarPerfil() {
     document.getElementById('btn-gerenciar-texto').innerText = '⚙️ Gerenciar';
 }
 
-function removerPerfil(index) {
-    if (perfis.length <= 1) {
-        alert('Você precisa ter pelo menos uma instituição cadastrada.');
+function removerChave(index) {
+    if (chaves.length <= 1) {
+        alert('Mantenha pelo menos uma chave cadastrada.');
         return;
     }
     
-    const eraPrincipal = perfis[index].isPrincipal;
-    perfis.splice(index, 1);
+    const eraPrincipal = chaves[index].isPrincipal;
+    chaves.splice(index, 1);
     
-    if (eraPrincipal && perfis.length > 0) {
-        perfis[0].isPrincipal = true;
+    if (eraPrincipal && chaves.length > 0) {
+        chaves[0].isPrincipal = true;
     }
 
-    if (perfilAtualIndex >= perfis.length) perfilAtualIndex = 0;
-    salvarPerfis();
+    if (chaveAtualIndex >= chaves.length) chaveAtualIndex = 0;
+    salvarTudo();
 }
 
-function renderizarListaExclusao() {
+function renderizarLista() {
     const container = document.getElementById('listaPerfisContainer');
-    container.innerHTML = '<h5 style="margin-top:10px; color:#1e3a8a;">Instituições Salvas:</h5>';
+    container.innerHTML = '<h5 style="margin-top:10px; color:#1e3a8a;">Chaves Cadastradas:</h5>';
 
-    perfis.forEach((p, index) => {
-        if (!p.banco && !p.chave) return;
-
+    chaves.forEach((c, index) => {
         const item = document.createElement('div');
         item.className = 'item-perfil';
         
-        const isStar = p.isPrincipal ? 'btn-star active' : 'btn-star';
-        const txtStar = p.isPrincipal ? '★' : '☆';
-        const titleStar = p.isPrincipal ? 'Instituição Principal' : 'Tornar Principal';
+        const isStar = c.isPrincipal ? 'btn-star active' : 'btn-star';
+        const txtStar = c.isPrincipal ? '★' : '☆';
+        const titleStar = c.isPrincipal ? 'Chave Principal' : 'Tornar Principal';
 
         item.innerHTML = `
-            <span><strong>${p.banco}</strong> (${p.chave})</span>
+            <span><strong>${c.banco}</strong> (${c.chave})</span>
             <div class="item-acoes">
                 <button type="button" class="${isStar}" onclick="definirComoPrincipal(${index})" title="${titleStar}">${txtStar}</button>
-                <button type="button" class="btn-del" onclick="removerPerfil(${index})">Excluir</button>
+                <button type="button" class="btn-del" onclick="removerChave(${index})">Excluir</button>
             </div>
         `;
         container.appendChild(item);
     });
 }
 
-function alterarTipoChave() {
-    const tipo = document.getElementById('tipoChave').value;
-    const label = document.getElementById('labelChave');
-    const input = document.getElementById('chave');
-
-    if (tipo === 'CELULAR') {
-        label.innerText = 'Chave Pix (DDD + Número):';
-        input.placeholder = '(00) 00000-0000';
-    } else if (tipo === 'CPF') {
-        label.innerText = 'Chave Pix (CPF):';
-        input.placeholder = '000.000.000-00';
-    } else if (tipo === 'CNPJ') {
-        label.innerText = 'Chave Pix (CNPJ):';
-        input.placeholder = '00.000.000/0001-00';
-    } else if (tipo === 'EMAIL') {
-        label.innerText = 'Chave Pix (E-mail):';
-        input.placeholder = 'seuemail@exemplo.com';
-    } else if (tipo === 'EVP') {
-        label.innerText = 'Chave Aleatória (EVP):';
-        input.placeholder = '00000000-0000-0000-0000-000000000000';
+// Tratamento dinâmico de Chave
+function tratarChaveBruta(chaveBruta) {
+    if (!chaveBruta) return '';
+    let c = chaveBruta.trim();
+    if (c.includes('@') || c.length > 25) return c.toLowerCase(); // Email ou EVP
+    let apenasNumeros = c.replace(/\D/g, '');
+    if (apenasNumeros.length === 11 && !c.startsWith('+')) return apenasNumeros; // CPF ou Celular simples
+    if (apenasNumeros.length === 14) return apenasNumeros; // CNPJ
+    if (c.startsWith('+55')) return '+55' + apenasNumeros.substring(2);
+    if ((apenasNumeros.length === 12 || apenasNumeros.length === 13) && apenasNumeros.startsWith('55')) {
+        return '+' + apenasNumeros;
     }
+    return c;
 }
 
-// Lógica de Formatação e QR Code
+// Lógica de Formatação BACEN / CRC16
 function CRC16(str) {
     let crc = 0xFFFF;
     const encoder = new TextEncoder();
@@ -553,33 +543,17 @@ function limparTexto(texto) {
     return t.trim().toUpperCase();
 }
 
-function tratarChavePixPorTipo(chaveBruta, tipo) {
-    if (!chaveBruta) return '';
-    let c = chaveBruta.trim();
-    if (tipo === 'EMAIL' || tipo === 'EVP') return c.toLowerCase().trim();
-    let apenasNumeros = c.replace(/\D/g, '');
-    if (tipo === 'CPF' || tipo === 'CNPJ') return apenasNumeros;
-    if (tipo === 'CELULAR') {
-        if (c.startsWith('+55')) return '+55' + apenasNumeros.substring(2);
-        if ((apenasNumeros.length === 12 || apenasNumeros.length === 13) && apenasNumeros.startsWith('55')) {
-            return '+' + apenasNumeros;
-        }
-        return '+55' + apenasNumeros;
-    }
-    return c;
-}
-
 function gerarPix() {
-    const perfil = perfis[perfilAtualIndex];
-    if (!perfil || !perfil.chave) {
-        alert('Selecione ou cadastre uma instituição válida.');
+    const itemChave = chaves[chaveAtualIndex];
+    if (!itemChave || !itemChave.chave) {
+        alert('Cadastre ou selecione uma chave válida.');
         document.getElementById('config-box').style.display = 'block';
         return;
     }
 
-    let chave = tratarChavePixPorTipo(perfil.chave, perfil.tipo);
-    let nome = limparTexto(perfil.nome).substring(0, 25);
-    let cidade = limparTexto(perfil.cidade).substring(0, 15);
+    let chave = tratarChaveBruta(itemChave.chave);
+    let nome = limparTexto(dadosFixos.nome).substring(0, 25) || 'RECEBEDOR';
+    let cidade = limparTexto(dadosFixos.cidade).substring(0, 15) || 'BRASIL';
     let valorInput = document.getElementById('valor').value;
 
     let payload = formatField('00', '01') + formatField('01', '12');
@@ -614,8 +588,9 @@ function gerarPix() {
     document.getElementById('result').style.display = 'block';
 }
 
-function mostrarAviso() {
+function mostrarAviso(textoMsg) {
     const toast = document.getElementById('toast');
+    if (textoMsg) toast.innerText = textoMsg;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2200);
 }
@@ -625,20 +600,19 @@ function copiarPix() {
     if (!payloadInput.value) return;
     payloadInput.select();
     document.execCommand('copy');
-    mostrarAviso();
+    mostrarAviso("✓ Código Pix copiado!");
 }
 
 function enviarWhatsAppComBotaoCopia() {
     const pixCode = document.getElementById('pix-payload').value.trim();
     if (!pixCode) return;
 
-    const perfil = perfis[perfilAtualIndex];
+    const itemChave = chaves[chaveAtualIndex];
     const valor = document.getElementById('valor').value || '0,00';
-    const banco = perfil ? perfil.banco : 'Pix';
-    const nome = perfil ? perfil.nome : '';
+    const banco = itemChave ? itemChave.banco : 'Pix';
+    const nome = dadosFixos.nome || '';
 
-    // Formatação em bloco de código monoespaçado (3 crases)
-    // O WhatsApp exibe automaticamente um botão nativo "Copiar código" para quem recebe esta mensagem.
+    // Formatação em bloco de código monoespaçado (3 crases) para gerar o botão "Copiar código" no WhatsApp
     let mensagem = `*Cobrança Pix - ${banco}*\n`;
     if (nome) mensagem += `*Recebedor:* ${nome}\n`;
     mensagem += `*Valor:* R$ ${valor}\n\n`;
@@ -648,7 +622,7 @@ function enviarWhatsAppComBotaoCopia() {
     window.open(url, '_blank');
 }
 
-document.addEventListener('DOMContentLoaded', carregarPerfis);
+document.addEventListener('DOMContentLoaded', carregarTudo);
 
 document.getElementById('valor').addEventListener('input', function(e) {
     let value = e.target.value.replace(/\D/g, '');
