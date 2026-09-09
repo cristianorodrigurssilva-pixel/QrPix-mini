@@ -1,4 +1,4 @@
-const CACHE_NAME = 'qrpix-v5';
+const CACHE_NAME = 'qrpix-v6';
 const ASSETS = [
     './',
     './index.html',
