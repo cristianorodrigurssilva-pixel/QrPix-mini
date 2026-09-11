@@ -628,7 +628,7 @@ function copiarPix() {
     }
 }
 
-// ENVIO DE MENSAGEM NO WHATSAPP EM 1 ETAPA
+// ENVIO DE MENSAGEM NO WHATSAPP EM 2 ETAPAS (SEPARADAS)
 function enviarWhatsApp() {
     const pixCode = document.getElementById('pix-payload').value.trim();
     if (!pixCode) return;
@@ -636,14 +636,24 @@ function enviarWhatsApp() {
     const nome = localStorage.getItem('pix_perm_nome') || document.getElementById('nome').value;
     const valor = document.getElementById('valor').value || '0,00';
 
-    let mensagem = `💳 *Dados para Pagamento via PIX*\n\n`;
-    if (nome) mensagem += `👤 *Recebedor:* ${nome}\n`;
-    mensagem += `💵 *Valor:* R$ ${valor}\n\n`;
-    mensagem += `👇 *Código Pix Copia e Cola 📋:*\n\n`;
-    mensagem += `${pixCode}`;
+    // Mensagem 1: Informações do pagamento
+    let mensagemInfo = `💠 *Dados para Pagamento via PIX*\n\n`;
+    if (nome) mensagemInfo += `👤 *Recebedor:* ${nome}\n`;
+    mensagemInfo += `💵 *Valor:* R$ ${valor}\n\n`;
+    mensagemInfo += `👇 *Abaixo segue o código Copia e Cola:*`;
 
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
-    window.open(url, '_blank');
+    // Mensagem 2: APENAS o código Pix Copia e Cola
+    let mensagemPix = pixCode;
+
+    // Envia a primeira mensagem com as informações
+    const urlInfo = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagemInfo)}`;
+    window.open(urlInfo, '_blank');
+
+    // Envia a segunda mensagem contendo APENAS o código puro
+    setTimeout(() => {
+        const urlPix = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagemPix)}`;
+        window.open(urlPix, '_blank');
+    }, 1000);
 }
 
 if ('serviceWorker' in navigator) {
