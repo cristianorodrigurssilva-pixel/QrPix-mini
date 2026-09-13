@@ -142,15 +142,19 @@
             border-radius: 10px; 
             font-size: 16px; 
             font-weight: bold; 
-            margin-top: 16px; 
+            margin-top: 12px; 
             cursor: pointer; 
+            display: block;
             transition: background 0.2s, transform 0.1s;
         }
         button.btn-principal:hover { background-color: #1d4ed8; }
         button.btn-principal:active { transform: scale(0.99); }
         
-        .btn-compartilhar { background-color: #059669 !important; color: white; margin-top: 10px; }
-        .btn-compartilhar:hover { background-color: #047857 !important; }
+        .btn-compartilhar { background-color: #25d366 !important; color: white; margin-top: 14px; }
+        .btn-compartilhar:hover { background-color: #128c7e !important; }
+
+        .btn-copiar { background-color: #0f172a !important; color: white; }
+        .btn-copiar:hover { background-color: #1e293b !important; }
         
         #btn-instalar { background-color: #0f172a; color: white; display: none; margin-top: 15px; }
         
@@ -260,9 +264,9 @@
         <label for="pix-payload">Código Pix Copia e Cola:</label>
         <textarea id="pix-payload" readonly></textarea>
         
-        <!-- Botão Genérico de Compartilhamento Nativo -->
-        <button type="button" class="btn-principal btn-compartilhar" onclick="compartilharPix()">📤 Enviar / Compartilhar</button>
-        <button type="button" id="btn-copiar" class="btn-principal" onclick="copiarPix()">Copiar Código Pix</button>
+        <!-- Botão WhatsApp e Botão de Copiar Garantidos -->
+        <button type="button" class="btn-principal btn-compartilhar" onclick="enviarWhatsApp()">💬 Enviar por WhatsApp</button>
+        <button type="button" id="btn-copiar" class="btn-principal btn-copiar" onclick="copiarPix()">Copiar Código Pix</button>
     </div>
 
     <button type="button" id="btn-instalar" class="btn-principal">Instalar App no Celular</button>
@@ -271,7 +275,7 @@
 <div id="toast" class="toast">✓ Código Pix copiado!</div>
 
 <script>
-// --- SISTEMA DE ARMAZENAMENTO DUPLO E PERMANENTE ---
+// --- ARMAZENAMENTO DUPLO ---
 let db;
 const dbName = "QrPixDatabase_V2";
 
@@ -599,15 +603,19 @@ function mostrarAviso(mensagemPersonalizada) {
     
     toast.innerText = mensagemPersonalizada || '✓ Código Pix copiado!';
     toast.classList.add('show');
-    btn.innerText = '✓ Código Copiado!';
-    btn.style.backgroundColor = '#06b6d4';
-    btn.style.color = '#0f172a';
+    if (btn) {
+        btn.innerText = '✓ Código Copiado!';
+        btn.style.backgroundColor = '#06b6d4';
+        btn.style.color = '#0f172a';
+    }
 
     setTimeout(function() {
         toast.classList.remove('show');
-        btn.innerText = 'Copiar Código Pix';
-        btn.style.backgroundColor = '#2563eb';
-        btn.style.color = '#ffffff';
+        if (btn) {
+            btn.innerText = 'Copiar Código Pix';
+            btn.style.backgroundColor = '#0f172a';
+            btn.style.color = '#ffffff';
+        }
     }, 2200);
 }
 
@@ -632,33 +640,30 @@ function copiarPix(silencioso = false) {
     }
 }
 
-// NOVO: SISTEMA DE COMPARTILHAMENTO MULTI-APLICATIVO (WEB SHARE API)
-function compartilharPix() {
+// ENVIO DE DUAS MENSAGENS SEQUENCIAIS NO WHATSAPP COM CÓPIA AUTOMÁTICA
+function enviarWhatsApp() {
     const pixCode = document.getElementById('pix-payload').value.trim();
     if (!pixCode) return;
 
-    // Copia preventivamente para a memória
+    // Copia silenciosa para a área de transferência
     copiarPix(true);
+    mostrarAviso('✓ Código copiado! Abrindo WhatsApp...');
 
     const nome = localStorage.getItem('pix_perm_nome') || document.getElementById('nome').value;
     const valor = document.getElementById('valor').value || '0,00';
 
-    const textoCompleto = `💠 *Dados para Pagamento via PIX*\n\n👤 *Recebedor:* ${nome}\n💵 *Valor:* R$ ${valor}\n\n👇 *Código Copia e Cola:* \n${pixCode}`;
+    const msgInfo = `💠 *Dados para Pagamento via PIX*\n\n👤 *Recebedor:* ${nome}\n💵 *Valor:* R$ ${valor}\n\n👇 *Abaixo segue o código Copia e Cola:*`;
 
-    // Se o dispositivo suportar o compartilhamento nativo (Android, iOS, Windows)
-    if (navigator.share) {
-        navigator.share({
-            title: 'Pagamento PIX',
-            text: textoCompleto
-        }).catch((error) => {
-            // Caso o usuário cancele o menu de compartilhamento
-        });
-    } else {
-        // Fallback para navegadores antigos sem suporte a Web Share (abre no WhatsApp por padrão)
-        mostrarAviso('✓ Código copiado! Abrindo WhatsApp...');
-        const urlInfo = `https://api.whatsapp.com/send?text=${encodeURIComponent(textoCompleto)}`;
-        window.open(urlInfo, '_blank');
-    }
+    const urlInfo = `https://api.whatsapp.com/send?text=${encodeURIComponent(msgInfo)}`;
+    const urlCode = `https://api.whatsapp.com/send?text=${encodeURIComponent(pixCode)}`;
+
+    // Primeira mensagem: Dados informativos
+    window.open(urlInfo, '_blank');
+
+    // Segunda mensagem: Código isolado (ativa o botão nativo do WhatsApp)
+    setTimeout(() => {
+        window.open(urlCode, '_blank');
+    }, 700);
 }
 
 if ('serviceWorker' in navigator) {
@@ -684,4 +689,3 @@ document.getElementById('btn-instalar').addEventListener('click', (e) => {
 
 </body>
 </html>
-
