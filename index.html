@@ -150,8 +150,8 @@
         button.btn-principal:hover { background-color: #1d4ed8; }
         button.btn-principal:active { transform: scale(0.99); }
         
-        .btn-compartilhar { background-color: #25d366 !important; color: white; margin-top: 14px; }
-        .btn-compartilhar:hover { background-color: #128c7e !important; }
+        .btn-compartilhar { background-color: #059669 !important; color: white; margin-top: 14px; }
+        .btn-compartilhar:hover { background-color: #047857 !important; }
 
         .btn-copiar { background-color: #0f172a !important; color: white; }
         .btn-copiar:hover { background-color: #1e293b !important; }
@@ -264,8 +264,9 @@
         <label for="pix-payload">Código Pix Copia e Cola:</label>
         <textarea id="pix-payload" readonly></textarea>
         
-        <!-- Botão WhatsApp e Botão de Copiar Garantidos -->
-        <button type="button" class="btn-principal btn-compartilhar" onclick="enviarWhatsApp()">💬 Enviar por WhatsApp</button>
+        <!-- Botão Único de Compartilhamento -->
+        <button type="button" class="btn-principal btn-compartilhar" onclick="compartilharPixEmDuasEtapas()">📤 Enviar / Compartilhar</button>
+        <!-- Botão Manual de Copiar Permanente -->
         <button type="button" id="btn-copiar" class="btn-principal btn-copiar" onclick="copiarPix()">Copiar Código Pix</button>
     </div>
 
@@ -275,7 +276,7 @@
 <div id="toast" class="toast">✓ Código Pix copiado!</div>
 
 <script>
-// --- ARMAZENAMENTO DUPLO ---
+// --- ARMAZENAMENTO BANCO E LOCALSTORAGE ---
 let db;
 const dbName = "QrPixDatabase_V2";
 
@@ -619,6 +620,7 @@ function mostrarAviso(mensagemPersonalizada) {
     }, 2200);
 }
 
+// FUNÇÃO DE CÓPIA DIRETA E NATIVA
 function copiarPix(silencioso = false) {
     const payloadInput = document.getElementById('pix-payload');
     const texto = payloadInput.value.trim();
@@ -640,30 +642,51 @@ function copiarPix(silencioso = false) {
     }
 }
 
-// ENVIO DE DUAS MENSAGENS SEQUENCIAIS NO WHATSAPP COM CÓPIA AUTOMÁTICA
-function enviarWhatsApp() {
+// COMPARTILHAMENTO QUE COPIA O CÓDIGO AUTOMATICAMENTE ANTES DE ABRIR O COMPARTILHAR
+async function compartilharPixEmDuasEtapas() {
     const pixCode = document.getElementById('pix-payload').value.trim();
     if (!pixCode) return;
 
-    // Copia silenciosa para a área de transferência
-    copiarPix(true);
-    mostrarAviso('✓ Código copiado! Abrindo WhatsApp...');
+    // 1. COPIA O CÓDIGO PIX LIMPO AUTOMATICAMENTE INSTANTANEAMENTE
+    copiarPix(false);
 
     const nome = localStorage.getItem('pix_perm_nome') || document.getElementById('nome').value;
     const valor = document.getElementById('valor').value || '0,00';
 
     const msgInfo = `💠 *Dados para Pagamento via PIX*\n\n👤 *Recebedor:* ${nome}\n💵 *Valor:* R$ ${valor}\n\n👇 *Abaixo segue o código Copia e Cola:*`;
 
-    const urlInfo = `https://api.whatsapp.com/send?text=${encodeURIComponent(msgInfo)}`;
-    const urlCode = `https://api.whatsapp.com/send?text=${encodeURIComponent(pixCode)}`;
+    // 2. DISPARA A API NATIVA DE COMPARTILHAMENTO MULTI-APP
+    if (navigator.share) {
+        try {
+            // Envia a mensagem com os detalhes informativos
+            await navigator.share({
+                title: 'Dados do Pix',
+                text: msgInfo
+            });
 
-    // Primeira mensagem: Dados informativos
-    window.open(urlInfo, '_blank');
+            // Envia a segunda mensagem contendo estritamente o código Pix limpo
+            setTimeout(async () => {
+                try {
+                    await navigator.share({
+                        title: 'Código Pix',
+                        text: pixCode
+                    });
+                } catch (e) {}
+            }, 400);
 
-    // Segunda mensagem: Código isolado (ativa o botão nativo do WhatsApp)
-    setTimeout(() => {
-        window.open(urlCode, '_blank');
-    }, 700);
+        } catch (err) {
+            // Mesmo se o usuário fechar o menu de compartilhamento, a cópia do código já estará feita!
+        }
+    } else {
+        // Fallback caso o navegador não possua suporte ao compartilhamento geral
+        const urlInfo = `https://api.whatsapp.com/send?text=${encodeURIComponent(msgInfo)}`;
+        const urlCode = `https://api.whatsapp.com/send?text=${encodeURIComponent(pixCode)}`;
+
+        window.open(urlInfo, '_blank');
+        setTimeout(() => {
+            window.open(urlCode, '_blank');
+        }, 700);
+    }
 }
 
 if ('serviceWorker' in navigator) {
