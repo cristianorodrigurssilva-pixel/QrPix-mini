@@ -260,8 +260,9 @@
         <label for="pix-payload">Código Pix Copia e Cola:</label>
         <textarea id="pix-payload" readonly></textarea>
         
-        <button type="button" id="btn-copiar" class="btn-principal" onclick="copiarPix()">Copiar Código Pix</button>
+        <!-- Ordem Alterada: WhatsApp Primeiro, Copiar Segundo -->
         <button type="button" class="btn-principal btn-whatsapp" onclick="enviarWhatsApp()">Enviar por WhatsApp</button>
+        <button type="button" id="btn-copiar" class="btn-principal" onclick="copiarPix()">Copiar Código Pix</button>
     </div>
 
     <button type="button" id="btn-instalar" class="btn-principal">Instalar App no Celular</button>
