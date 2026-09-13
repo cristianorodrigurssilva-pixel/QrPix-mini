@@ -260,7 +260,7 @@
         <label for="pix-payload">Código Pix Copia e Cola:</label>
         <textarea id="pix-payload" readonly></textarea>
         
-        <!-- Ordem Alterada: WhatsApp Primeiro, Copiar Segundo -->
+        <!-- Ordem Mantida: WhatsApp Primeiro, Copiar Segundo -->
         <button type="button" class="btn-principal btn-whatsapp" onclick="enviarWhatsApp()">Enviar por WhatsApp</button>
         <button type="button" id="btn-copiar" class="btn-principal" onclick="copiarPix()">Copiar Código Pix</button>
     </div>
@@ -593,10 +593,11 @@ function gerarPix() {
     }, 50);
 }
 
-function mostrarAviso() {
+function mostrarAviso(mensagemPersonalizada) {
     const toast = document.getElementById('toast');
     const btn = document.getElementById('btn-copiar');
     
+    toast.innerText = mensagemPersonalizada || '✓ Código Pix copiado!';
     toast.classList.add('show');
     btn.innerText = '✓ Código Copiado!';
     btn.style.backgroundColor = '#06b6d4';
@@ -610,7 +611,7 @@ function mostrarAviso() {
     }, 2200);
 }
 
-function copiarPix() {
+function copiarPix(silencioso = false) {
     const payloadInput = document.getElementById('pix-payload');
     const texto = payloadInput.value.trim();
     if (!texto) return;
@@ -619,20 +620,26 @@ function copiarPix() {
     payloadInput.select();
 
     if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(texto).then(() => mostrarAviso()).catch(() => {
+        navigator.clipboard.writeText(texto).then(() => {
+            if (!silencioso) mostrarAviso();
+        }).catch(() => {
             document.execCommand('copy');
-            mostrarAviso();
+            if (!silencioso) mostrarAviso();
         });
     } else {
         document.execCommand('copy');
-        mostrarAviso();
+        if (!silencioso) mostrarAviso();
     }
 }
 
-// ENVIO DE MENSAGEM NO WHATSAPP EM 2 ETAPAS (SEPARADAS)
+// ENVIO DE MENSAGEM NO WHATSAPP COM CÓPIA AUTOMÁTICA
 function enviarWhatsApp() {
     const pixCode = document.getElementById('pix-payload').value.trim();
     if (!pixCode) return;
+
+    // 1. Copia automaticamente para a memória no exato momento do clique
+    copiarPix(true);
+    mostrarAviso('✓ Código copiado! Abrindo WhatsApp...');
 
     const nome = localStorage.getItem('pix_perm_nome') || document.getElementById('nome').value;
     const valor = document.getElementById('valor').value || '0,00';
