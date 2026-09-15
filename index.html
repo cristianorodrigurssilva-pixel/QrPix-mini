@@ -666,54 +666,28 @@ function copiarMetodoForcado(inputElement, texto, silencioso) {
     }
 }
 
-// ENVIO ADEQUADO PARA WHATSAPP (PERMITE COPIAR COM UM TOQUE NA SEGUNDA MENSAGEM)
-async function enviarWhatsApp() {
+// ENVIO DIRETO PARA O WHATSAPP COM CÓDIGO COPIÁVEL
+function enviarWhatsApp() {
     const pixCode = document.getElementById('pix-payload').value.trim();
     if (!pixCode) return;
 
-    // Copia o código para a área de transferência do usuário por garantia
+    // 1. Copia o código diretamente para a memória no toque
     copiarPix(true);
     mostrarAviso('✓ Código copiado! Abrindo WhatsApp...');
 
     const nome = localStorage.getItem('pix_perm_nome') || document.getElementById('nome').value;
     const valor = document.getElementById('valor').value || '0,00';
 
-    const msgTexto = `💠 *DADOS PARA PAGAMENTO VIA PIX*\n\n` +
+    // 2. Mensagem formatada
+    const mensagem = `💠 *DADOS PARA PAGAMENTO VIA PIX*\n\n` +
                      `👤 *Recebedor:* ${nome}\n` +
                      `💵 *Valor:* R$ ${valor}\n\n` +
-                     `👇 *O código Pix Copia e Cola segue na mensagem abaixo:*`;
+                     `👇 *Código Pix Copia e Cola:* \n\n` +
+                     `${pixCode}`;
 
-    // 1. Tenta compartilhamento nativo do dispositivo
-    if (navigator.share) {
-        try {
-            await navigator.share({
-                title: 'Dados do Pix',
-                text: msgTexto
-            });
-
-            // Envia o código em uma mensagem separada
-            setTimeout(async () => {
-                try {
-                    await navigator.share({
-                        title: 'Código Pix',
-                        text: pixCode
-                    });
-                } catch (e) {}
-            }, 600);
-            return;
-        } catch (err) {
-            // Em caso de cancelamento do compartilhamento, usa a API universal abaixo
-        }
-    }
-
-    // 2. Fallback via links da API do WhatsApp
-    const urlInfo = `https://api.whatsapp.com/send?text=${encodeURIComponent(msgTexto)}`;
-    const urlPix = `https://api.whatsapp.com/send?text=${encodeURIComponent(pixCode)}`;
-
-    window.open(urlInfo, '_blank');
-    setTimeout(() => {
-        window.open(urlPix, '_blank');
-    }, 1200);
+    // 3. Abre o WhatsApp diretamente na mesma janela, evitando o bloqueador de pop-ups
+    const urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
+    window.location.href = urlWhatsApp;
 }
 
 if ('serviceWorker' in navigator) {
