@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -583,6 +584,11 @@ function gerarPix() {
     qrContainer.innerHTML = '';
 
     setTimeout(() => {
+        if (typeof QRCode === 'undefined') {
+            alert('A biblioteca do QR Code não carregou. Verifique sua conexão com a internet e tente novamente.');
+            return;
+        }
+
         new QRCode(qrContainer, { 
             text: pixCompleto, 
             width: 180, 
@@ -707,3 +713,4 @@ document.getElementById('btn-instalar').addEventListener('click', (e) => {
 
 </body>
 </html>
+
